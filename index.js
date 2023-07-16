@@ -210,6 +210,7 @@ const server = new ssh2.Server({
           } else {
             // 判断是否为特殊按键
             if (parseInt(data.toString('hex'), 16) < 33) return
+            if (/(\ud83c[\udf00-\udfff])|(\ud83d[\udc00-\ude4f\ude80-\udeff])|[\u2600-\u2B55]/g.test(data.toString())) return
             const str = data.toString()
             inputCache.push(...str.split(''))
             moveCursor(position[0] + getWidth(data.toString()), position[1])
