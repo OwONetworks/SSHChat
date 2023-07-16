@@ -96,7 +96,7 @@ const server = new ssh2.Server({
       }
     }
 
-    write('| > ')
+    write('│ > ')
 
     const str = inputCache.join('')
 
