@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "ssh2": "^1.14.0",
+    "terminal-kit": "^3.0.0"
+  }
+}
