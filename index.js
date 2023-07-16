@@ -13,12 +13,17 @@ const renderText = (text, width) => {
     const item = items.shift()
     if (item) {
       const code = item.charCodeAt(0)
-      if (code >= 0x00 && code <= 0xff) {
+      if (code > 65248 && code < 65375) {
+        tmp += String.fromCharCode(code - 65248);
+        result += tmp;
         left -= 1
+      } else if (code >= 0x00 && code <= 0xff) {
+        left -= 1
+        result += item
       } else {
         left -= 2
+        result += item
       }
-      result += item
     } else {
       result += ' '
       left -= 1
