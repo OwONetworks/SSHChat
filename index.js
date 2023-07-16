@@ -4,6 +4,47 @@ const fs = require('fs')
 let messages = []
 const renders = {}
 
+const renderText = (text, width) => {
+  const items = text.split('')
+  let left = width
+  let result = ''
+
+  while (left > 0) {
+    const item = items.shift()
+    if (item) {
+      const code = item.charCodeAt(0)
+      if (code >= 0x00 && code <= 0xff) {
+        left -= 1
+      } else {
+        left -= 2
+      }
+      result += item
+    } else {
+      result += ' '
+      left -= 1
+    }
+  }
+
+  return result
+}
+
+const getWidth = (text) => {
+  const items = text.split('')
+  let width = 0
+
+  while (items.length > 0) {
+    const item = items.shift()
+    const code = item.charCodeAt(0)
+    if (code >= 0x00 && code <= 0xff) {
+      width += 1
+    } else {
+      width += 2
+    }
+  }
+
+  return width
+}
+
 const server = new ssh2.Server({
   hostKeys: [fs.readFileSync('./keys/host.key')],
 }, (client) => {
@@ -46,15 +87,11 @@ const server = new ssh2.Server({
       }
 
       if (!isFirst && !isLast) {
-        write('│')
+        write('│ ')
         const currentLine = i + 1
         const messageOffset = height - 4 - currentLine
         const message = latestMessages[messageOffset]
-        if (message) {
-          write(` ${message}${' '.repeat(width - 4 - message.length)} `)
-        } else {
-          write(' '.repeat(width - 2))
-        }
+        write(renderText(message || '', width - 3))
         write('│')
       }
     }
@@ -62,17 +99,14 @@ const server = new ssh2.Server({
     write('| > ')
 
     const str = inputCache.join('')
+
     if (str) {
-      write(str)
-      write(' '.repeat(width - 5 - str.length))
+      write(renderText(inputCache.join(''), width - 5))
     } else {
       write(' '.repeat(width - 5))
     }
 
-    console.log(`position: ${position}`)
-    console.log(`inputCache: ${inputCache.join('')}`)
-
-    write('|')
+    write('│')
 
     write('└')
     write('─'.repeat(width - 2))
@@ -111,6 +145,8 @@ const server = new ssh2.Server({
 
         const write = stdout.write.bind(stdout)
 
+        messages.push(`+ ${username} joined`)
+
         // 移动光标
         const moveCursor = (x, y) => {
           write(`\x1b[${y};${x}H`)
@@ -128,7 +164,11 @@ const server = new ssh2.Server({
           const hex = data.toString('hex')
           if (data[0] === 0x7f) {
             // 退格
-            if (inputCache.pop()) moveCursor(position[0] - 1, position[1])
+            const item = inputCache.pop()
+            if (item) {
+              const width = getWidth(item)
+              moveCursor(position[0] - width, position[1])
+            }
           } else if (hex === '0d') {
             // 回车
             const input = inputCache.join('')
@@ -163,12 +203,11 @@ const server = new ssh2.Server({
               moveCursor(X + 1, Y)
             }
           } else {
-            // 判断是否为可打印字符
-            const string = data.toString()
-            if (string.match(/[\x20-\x7e]/)) {
-              inputCache.push(data.toString())
-              moveCursor(position[0] + 1, position[1])
-            }
+            // 判断是否为特殊按键
+            if (parseInt(data.toString('hex'), 16) < 33) return
+            const str = data.toString()
+            inputCache.push(...str.split(''))
+            moveCursor(position[0] + getWidth(data.toString()), position[1])
           }
 
           draw()
@@ -179,11 +218,13 @@ const server = new ssh2.Server({
     client.on('close', () => {
       console.log('client close')
       delete renders[username]
+      messages.push(`+ ${username} left`)
     })
 
     client.on('error', (err) => {
       console.log('client error', err)
       delete renders[username]
+      messages.push(`+ ${username} left`)
     })
   })
 })
