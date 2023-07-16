@@ -14,7 +14,7 @@ const renderText = (text, width) => {
     if (item) {
       const code = item.charCodeAt(0)
       if (code > 65248 && code < 65375) {
-        tmp += String.fromCharCode(code - 65248);
+        const tmp = String.fromCharCode(code - 65248);
         result += tmp;
         left -= 1
       } else if (code >= 0x00 && code <= 0xff) {
