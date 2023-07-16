@@ -1,7 +1,7 @@
 const ssh2 = require('ssh2')
 const fs = require('fs')
 
-const messages = []
+let messages = []
 const renders = {}
 
 const server = new ssh2.Server({
@@ -26,6 +26,7 @@ const server = new ssh2.Server({
     write('\x1b[2J')
     write('\x1b[0;0H')
 
+    messages = messages.slice(-500)
     const latestMessages = messages.slice(-height + 4).reverse()
 
     for (let i = 0; i < height - 3; i++) {
