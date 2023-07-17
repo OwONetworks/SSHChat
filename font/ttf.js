@@ -172,6 +172,9 @@ const getTextWidthByFont = (text, font, fontSize) => {
 }
 
 const getTextWidth = (text, fontSize = 16) => {
+  if (text.match(/\0x00-\0x7f/)) {
+    return text.length * fontSize
+  }
   const files = fs.readdirSync(__dirname)
   const fonts = files.filter(file => file.endsWith('.ttf'))
 
@@ -198,3 +201,5 @@ module.exports = {
   getTextWidth,
   getTextWidthRate,
 }
+
+'风间苏苏: clear'.split('').forEach(char => console.log(char, getTextWidthRate(char)))
