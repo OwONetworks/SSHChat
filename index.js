@@ -19,11 +19,9 @@ const preprocess = (text) => {
   const regexp_cn = /[\u4e00-\u9fa5]/
   // 匹配英文，数字，空格和标点符号
   const regexp_en = /[\u0020-\u007e]/
-  // 匹配emoji
-  const regexp_emoji = /[\ud800-\udbff][\udc00-\udfff]/
-  
+
   text = text.split('').filter(char => {
-    return regexp_cn.test(char) || regexp_en.test(char) || regexp_emoji.test(char)
+    return regexp_cn.test(char) || regexp_en.test(char)
   }).join('')
 
   return text
