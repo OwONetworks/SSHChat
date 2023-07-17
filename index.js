@@ -151,6 +151,7 @@ const server = new ssh2.Server({
         const write = stdout.write.bind(stdout)
 
         messages.push(`+ ${username} joined`)
+        Object.values(renders).forEach((render) => render())
 
         // 移动光标
         const moveCursor = (x, y) => {
@@ -209,7 +210,7 @@ const server = new ssh2.Server({
             }
           } else {
             // 判断是否为特殊按键
-            if (parseInt(data.toString('hex'), 16) < 33) return
+            if (parseInt(data.toString('hex'), 16) < 32) return
             if (/(\ud83c[\udf00-\udfff])|(\ud83d[\udc00-\ude4f\ude80-\udeff])|[\u2600-\u2B55]/g.test(data.toString())) return
             const str = data.toString()
             inputCache.push(...str.split(''))
@@ -225,12 +226,12 @@ const server = new ssh2.Server({
       console.log('client close')
       delete renders[username]
       messages.push(`+ ${username} left`)
+      Object.values(renders).forEach((render) => render())
     })
 
     client.on('error', (err) => {
       console.log('client error', err)
       delete renders[username]
-      messages.push(`+ ${username} left`)
     })
   })
 })
