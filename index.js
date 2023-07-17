@@ -184,12 +184,25 @@ const server = new ssh2.Server({
         shell.stdin.on('data', (data) => {
           // 处理删除，退格，回车，左右，不处理上下
           const hex = data.toString('hex')
-          if (data[0] === 0x7f) {
+          if (hex === '7f') {
             // 退格
-            const item = inputCache.pop()
-            if (item) {
-              const width = getWidth(item)
-              moveCursor(position[0] - width, position[1])
+            const currentX = position[0]
+            const currentTextX = currentX - 6
+            const textPositionMap = inputCache.map((text, index) => {
+              const width = getWidth(text)
+              return [width, index]
+            })
+
+            const targetText = textPositionMap.find(([width, index]) => {
+              const textX = textPositionMap.slice(0, index).reduce((a, b) => a + b[0], 0)
+              const textEndX = textX + width
+              return textX <= currentTextX && currentTextX < textEndX
+            })
+
+            if (targetText) {
+              const index = targetText[1]
+              inputCache.splice(index, 1)
+              moveCursor(currentX - targetText[0], position[1])
             }
           } else if (hex === '0d') {
             // 回车
@@ -207,23 +220,23 @@ const server = new ssh2.Server({
               Object.values(renders).forEach((render) => render())
               Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
             }
-          } else if (data[0] === 0x1b && data[1] === 0x5b && data[2] === 0x44) {
+          } else if (hex === "1b5b44") {
             // 左
-            const minX = 3
+            const minX = 4
             const X = position[0] - 1
             const Y = position[1]
-            const isMinX = X === minX
+            const isMinX = X <= minX
             if (!isMinX) {
-              moveCursor(X - 1, Y)
+              moveCursor(X, Y)
             }
-          } else if (data[0] === 0x1b && data[1] === 0x5b && data[2] === 0x43) {
+          } else if (hex === "1b5b43") {
             // 右
             const maxX = inputCache.length + 3
-            const X = position[0] - 1
+            const X = position[0] + 1
             const Y = position[1]
-            const isMaxX = X === maxX
+            const isMaxX = X >= maxX
             if (!isMaxX) {
-              moveCursor(X + 1, Y)
+              moveCursor(X, Y)
             }
           } else {
             // 判断是否为特殊按键
