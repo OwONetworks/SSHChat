@@ -201,5 +201,3 @@ module.exports = {
   getTextWidth,
   getTextWidthRate,
 }
-
-'风间苏苏: clear'.split('').forEach(char => console.log(char, getTextWidthRate(char)))
