@@ -1,29 +1,33 @@
 const ssh2 = require('ssh2')
 const fs = require('fs')
+const ttf = require('./font/ttf')
 
 let messages = []
 const renders = {}
 
+const preprocess = (text) => {
+  // 全角转半角
+  text = text.replace(/[\uff00-\uffff]/g, (char) => {
+    return String.fromCharCode(char.charCodeAt(0) - 0xfee0)
+  })
+
+  // 去除控制字符
+  text = text.replace(/[\x00-\x1f]/g, '')
+
+  return text
+}
+
 const renderText = (text, width) => {
-  const items = text.split('')
+  const items = preprocess(text).split('')
   let left = width
   let result = ''
 
   while (left > 0) {
     const item = items.shift()
     if (item) {
-      const code = item.charCodeAt(0)
-      if (code > 65248 && code < 65375) {
-        const tmp = String.fromCharCode(code - 65248);
-        result += tmp;
-        left -= 1
-      } else if (code >= 0x00 && code <= 0xff) {
-        left -= 1
-        result += item
-      } else {
-        left -= 2
-        result += item
-      }
+      const width = ttf.getTextWidthRate(item)
+      result += item
+      left -= width
     } else {
       result += ' '
       left -= 1
@@ -34,16 +38,13 @@ const renderText = (text, width) => {
 }
 
 const getWidth = (text) => {
-  const items = text.split('')
+  const items = preprocess(text).split('')
   let width = 0
 
   while (items.length > 0) {
     const item = items.shift()
-    const code = item.charCodeAt(0)
-    if (code >= 0x00 && code <= 0xff) {
-      width += 1
-    } else {
-      width += 2
+    if (item) {
+      width += ttf.getTextWidthRate(item)
     }
   }
 
@@ -117,6 +118,8 @@ const server = new ssh2.Server({
     write('─'.repeat(width - 2))
     write('┘')
 
+    write(` GitHub: OwONetworks/SSHChat | username: ${username} | window size: ${width}x${height} | Current Online: ${Object.keys(renders).length}`)
+
     const x = position[0]
     const y = position[1]
     write(`\x1b[${y};${x}H`)
@@ -132,15 +135,14 @@ const server = new ssh2.Server({
 
         height = info.rows
         width = info.cols
-
-        console.log(`window change: ${width}x${height}`)
       })
 
       session.on('window-change', (accept, reject, info) => {
         height = info.rows
         width = info.cols
 
-        console.log(`window change: ${width}x${height}`)
+        position[1] = height - 2
+        draw()
       })
 
       session.on('shell', (accept, reject) => {
@@ -210,9 +212,7 @@ const server = new ssh2.Server({
             }
           } else {
             // 判断是否为特殊按键
-            if (parseInt(data.toString('hex'), 16) < 32) return
-            if (/(\ud83c[\udf00-\udfff])|(\ud83d[\udc00-\ude4f\ude80-\udeff])|[\u2600-\u2B55]/g.test(data.toString())) return
-            const str = data.toString()
+            const str = preprocess(data.toString())
             inputCache.push(...str.split(''))
             moveCursor(position[0] + getWidth(data.toString()), position[1])
           }
