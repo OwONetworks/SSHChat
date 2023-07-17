@@ -15,6 +15,17 @@ const preprocess = (text) => {
   // 去除控制字符
   text = text.replace(/[\x00-\x1f]/g, '')
 
+  // 匹配中文字符
+  const regexp_cn = /[\u4e00-\u9fa5]/
+  // 匹配英文，数字，空格和标点符号
+  const regexp_en = /[\u0020-\u007e]/
+  // 匹配emoji
+  const regexp_emoji = /[\ud800-\udbff][\udc00-\udfff]/
+  
+  text = text.split('').filter(char => {
+    return regexp_cn.test(char) || regexp_en.test(char) || regexp_emoji.test(char)
+  })
+
   return text
 }
 
@@ -258,6 +269,7 @@ const server = new ssh2.Server({
           } else {
             // 判断是否为特殊按键
             const str = preprocess(data.toString())
+            if (!str) return
             inputCache.push(...str.split(''))
             moveCursor(position[0] + getWidth(data.toString()), position[1])
           }
