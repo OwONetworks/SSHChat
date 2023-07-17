@@ -60,15 +60,32 @@ const server = new ssh2.Server({
   let width = 0
   let username = ''
 
+  client.on('close', () => {
+    console.log('client close')
+    delete renders[username]
+    delete dings[username]
+    messages.push(`+ ${username} left`)
+    Object.values(renders).forEach((render) => render())
+    Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
+  })
+
+  client.on('error', (err) => {
+    console.log('client error', err)
+    delete renders[username]
+    delete dings[username]
+  })
+
   client.on('authentication', (ctx) => {
-    username = ctx.username
+    try {
+      username = ctx.username
 
-    if (renders[username] || dings[username]) {
-      ctx.reject()
-      return
-    }
-
-    ctx.accept()
+      if (renders[username] || dings[username]) {
+        ctx.reject()
+        return
+      }
+  
+      ctx.accept()
+    } catch (error) {}
   })
   
   const position = [0, 0]
@@ -248,21 +265,6 @@ const server = new ssh2.Server({
           draw()
         })
       })
-    })
-
-    client.on('close', () => {
-      console.log('client close')
-      delete renders[username]
-      delete dings[username]
-      messages.push(`+ ${username} left`)
-      Object.values(renders).forEach((render) => render())
-      Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
-    })
-
-    client.on('error', (err) => {
-      console.log('client error', err)
-      delete renders[username]
-      delete dings[username]
     })
   })
 })
