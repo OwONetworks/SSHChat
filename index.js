@@ -24,7 +24,7 @@ const preprocess = (text) => {
   
   text = text.split('').filter(char => {
     return regexp_cn.test(char) || regexp_en.test(char) || regexp_emoji.test(char)
-  })
+  }).join('')
 
   return text
 }
