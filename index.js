@@ -4,6 +4,7 @@ const ttf = require('./font/ttf')
 
 let messages = []
 const renders = {}
+const dings = {}
 
 const preprocess = (text) => {
   // 全角转半角
@@ -60,12 +61,23 @@ const server = new ssh2.Server({
   let username = ''
 
   client.on('authentication', (ctx) => {
-    ctx.accept()
     username = ctx.username
+
+    if (renders[username] || dings[username]) {
+      ctx.reject()
+      return
+    }
+
+    ctx.accept()
   })
   
   const position = [0, 0]
   const inputCache = []
+
+  const ding = () => {
+    const write = stdout.write.bind(stdout)
+    write('\x07')
+  }
 
   const draw = () => {
     const write = stdout.write.bind(stdout)
@@ -118,7 +130,7 @@ const server = new ssh2.Server({
     write('─'.repeat(width - 2))
     write('┘')
 
-    write(` GitHub: OwONetworks/SSHChat | username: ${username} | window size: ${width}x${height} | Current Online: ${Object.keys(renders).length}`)
+    write(` GitHub: OwONetworks/SSHChat | username: ${username} | window size: ${width}x${height} | Current Online: ${Object.values(renders).length}`)
 
     const x = position[0]
     const y = position[1]
@@ -154,6 +166,7 @@ const server = new ssh2.Server({
 
         messages.push(`+ ${username} joined`)
         Object.values(renders).forEach((render) => render())
+        Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
 
         // 移动光标
         const moveCursor = (x, y) => {
@@ -163,6 +176,7 @@ const server = new ssh2.Server({
         }
 
         renders[username] = draw
+        dings[username] = ding
 
         draw()
         moveCursor(5, height - 2)
@@ -191,6 +205,7 @@ const server = new ssh2.Server({
               messages.push(`${username}: ${input}`)
               moveCursor(5, height - 2)
               Object.values(renders).forEach((render) => render())
+              Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
             }
           } else if (data[0] === 0x1b && data[1] === 0x5b && data[2] === 0x44) {
             // 左
@@ -225,13 +240,16 @@ const server = new ssh2.Server({
     client.on('close', () => {
       console.log('client close')
       delete renders[username]
+      delete dings[username]
       messages.push(`+ ${username} left`)
       Object.values(renders).forEach((render) => render())
+      Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
     })
 
     client.on('error', (err) => {
       console.log('client error', err)
       delete renders[username]
+      delete dings[username]
     })
   })
 })
