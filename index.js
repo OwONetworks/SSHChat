@@ -65,8 +65,8 @@ const server = new ssh2.Server({
   hostKeys: [fs.readFileSync('./keys/host.key')],
 }, (client) => {
   let stdout = null
-  let height = 0
-  let width = 0
+  let height = 24
+  let width = 80
   let username = ''
 
   client.on('close', () => {
@@ -87,6 +87,16 @@ const server = new ssh2.Server({
   client.on('authentication', (ctx) => {
     try {
       username = ctx.username
+
+      if (preprocess(username) !== username) {
+        ctx.reject()
+        return
+      }
+
+      if (username.length > 16) {
+        ctx.reject()
+        return
+      }
 
       if (renders[username] || dings[username]) {
         ctx.reject()
@@ -171,13 +181,13 @@ const server = new ssh2.Server({
       session.on('pty', (accept, reject, info) => {
         accept()
 
-        height = info.rows
-        width = info.cols
+        info.rows && (height = info.rows)
+        info.cols && (width = info.cols)
       })
 
       session.on('window-change', (accept, reject, info) => {
-        height = info.rows
-        width = info.cols
+        info.rows && (height = info.rows)
+        info.cols && (width = info.cols)
 
         position[1] = height - 2
         draw()
