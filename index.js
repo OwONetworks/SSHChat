@@ -71,8 +71,6 @@ const server = new ssh2.Server({
 
   client.on('close', () => {
     if(renders[username]) {
-      delete renders[username]
-      delete dings[username]
       messages.push(`+ ${username} left`)
       Object.values(renders).forEach((render) => render())
       Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
@@ -82,6 +80,9 @@ const server = new ssh2.Server({
       
       console.log(`found a ghost connection from ${ip}:${port}`)
     }
+
+    delete renders[username]
+    delete dings[username]
   })
 
   client.on('error', (err) => {
