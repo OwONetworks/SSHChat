@@ -70,12 +70,18 @@ const server = new ssh2.Server({
   let username = ''
 
   client.on('close', () => {
-    console.log('client close')
-    delete renders[username]
-    delete dings[username]
-    messages.push(`+ ${username} left`)
-    Object.values(renders).forEach((render) => render())
-    Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
+    if(renders[username]) {
+      delete renders[username]
+      delete dings[username]
+      messages.push(`+ ${username} left`)
+      Object.values(renders).forEach((render) => render())
+      Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
+    } else {
+      const ip = client._socks.remoteAddress
+      const port = client._socks.remotePort
+      
+      console.log(`found a ghost connection from ${ip}:${port}`)
+    }
   })
 
   client.on('error', (err) => {
@@ -102,7 +108,7 @@ const server = new ssh2.Server({
         ctx.reject()
         return
       }
-  
+
       ctx.accept()
     } catch (error) {}
   })
@@ -174,7 +180,6 @@ const server = new ssh2.Server({
   }
 
   client.on('ready', () => {
-    // client ready
     client.on('session', (accept, reject) => {
       const session = accept()
 
@@ -200,10 +205,6 @@ const server = new ssh2.Server({
 
         const write = stdout.write.bind(stdout)
 
-        messages.push(`+ ${username} joined`)
-        Object.values(renders).forEach((render) => render())
-        Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
-
         // 移动光标
         const moveCursor = (x, y) => {
           write(`\x1b[${y};${x}H`)
@@ -213,6 +214,10 @@ const server = new ssh2.Server({
 
         renders[username] = draw
         dings[username] = ding
+
+        messages.push(`+ ${username} joined`)
+        Object.values(renders).forEach((render) => render())
+        Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
 
         draw()
         moveCursor(5, height - 2)
