@@ -77,8 +77,8 @@ const server = new ssh2.Server({
       Object.values(renders).forEach((render) => render())
       Object.values(dings).filter(t => t !== ding).forEach((ding) => ding())
     } else {
-      const ip = client._socks.remoteAddress
-      const port = client._socks.remotePort
+      const ip = client._sock.remoteAddress
+      const port = client._sock.remotePort
       
       console.log(`found a ghost connection from ${ip}:${port}`)
     }
